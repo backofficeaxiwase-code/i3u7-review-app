@@ -442,7 +442,17 @@
                     })
                 });
 
-                if (!res.ok) throw new Error("API Error");
+                if (!res.ok) {
+                    const errText = await res.text();
+                    let errMsg = `API Error: ${res.status}`;
+                    try {
+                        const json = JSON.parse(errText);
+                        if (json.error) errMsg = json.error;
+                    } catch (e) {
+                        errMsg += `\n${errText}`;
+                    }
+                    throw new Error(errMsg);
+                }
                 const data = await res.json();
 
                 resultText.value = data.text;
@@ -457,7 +467,7 @@
                 window.scrollTo(0, 0);
 
             } catch (e) {
-                alert("エラーが発生しました。もう一度お試しください。");
+                alert(`エラーが発生しました:\n${e.message}\n\nもう一度お試しください。`);
                 console.error(e);
             } finally {
                 loading.style.display = 'none';
