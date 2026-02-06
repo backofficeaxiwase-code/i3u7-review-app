@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIクチコミ作成アシスタント | i3u7</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #f8f9fa;
+            --text-main: #2d2d2d;
+            --primary: #c5a028;
+            /* Gold accent */
+            --primary-light: #fcf6da;
+            --border-radius: 12px;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            padding-bottom: 20px;
+        }
+
+        .header {
+            background: #222;
+            color: #d4af37;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+
+        .step-container {
+            padding: 24px;
+            display: none;
+            /* Hidden by default, JS toggles it */
+        }
+
+        .step-container.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .question-block {
+            margin-bottom: 32px;
+        }
+
+        .q-label {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: block;
+            border-left: 4px solid var(--primary);
+            padding-left: 10px;
+        }
+
+        .q-sub {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 12px;
+            display: block;
+            margin-top: -8px;
+        }
+
+        /* Radio Buttons (Cards) for Context */
+        .radio-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .context-radio {
+            display: none;
+        }
+
+        .context-label {
+            display: block;
+            padding: 12px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .context-radio:checked+.context-label {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: #8a6d00;
+            font-weight: bold;
+        }
+
+        /* Checkboxes for Features */
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .feature-check {
+            display: none;
+        }
+
+        .feature-label {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            background: #fff;
+        }
+
+        .feature-label:hover {
+            background: #fafafa;
+        }
+
+        .check-circle {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .check-circle::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: none;
+        }
+
+        .feature-check:checked+.feature-label {
+            background: var(--primary-light);
+            border-color: var(--primary);
+        }
+
+        .feature-check:checked+.feature-label .check-circle {
+            border-color: var(--primary);
+        }
+
+        .feature-check:checked+.feature-label .check-circle::after {
+            display: block;
+        }
+
+        /* Free Text */
+        textarea.free-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            min-height: 80px;
+            box-sizing: border-box;
+        }
+
+        /* Action Buttons */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        .btn-primary {
+            background: #222;
+            color: #d4af37;
+        }
+
+        .btn-secondary {
+            background: #fff;
+            border: 1px solid #ddd;
+            color: #444;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-row .btn {
+            margin-top: 0;
+        }
+
+        /* Loading */
+        .loading {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 999;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #eee;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>REVIEW ASSISTANT</h1>
+        </div>
+
+        <!-- STEP 1: Context -->
+        <div id="step-1" class="step-container active">
+            <div class="question-block">
+                <span class="q-label">Q1. 今回の利用シーンは？</span>
+                <div class="radio-grid">
+                    <label>
+                        <input type="radio" name="context" value="一人でリラックス" class="context-radio" checked>
+                        <span class="context-label">👤 ひとりで<br>じっくり</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="context" value="カップルでデート" class="context-radio">
+                        <span class="context-label">💑 カップル・<br>夫婦で</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="context" value="友人と楽しく" class="context-radio">
+                        <span class="context-label">👯‍♀️ 友人と<br>楽しく</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="context" value="仕事の合間に" class="context-radio">
+                        <span class="context-label">💼 仕事の<br>合間に</span>
+                    </label>
+                </div>
+                <button class="btn btn-primary" onclick="nextStep(2)">次へ進む</button>
+            </div>
+        </div>
+
+        <!-- STEP 2: Features -->
+        <div id="step-2" class="step-container">
+            <div class="question-block">
+                <span class="q-label">Q2. 特に良かった点は？</span>
+                <span class="q-sub">複数選択可。タップするとその話題が文章に入ります。</span>
+                <div class="feature-list">
+                    <label>
+                        <input type="checkbox" name="features" value="セルフロウリュ" class="feature-check">
+                        <span class="feature-label">
+                            <div class="check-circle"></div>🔥 セルフロウリュ
+                        </span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="features" value="水風呂" class="feature-check">
+                        <span class="feature-label">
+                            <div class="check-circle"></div>💧 水風呂（冷たい！）
+                        </span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="features" value="インフィニティチェア" class="feature-check">
+                        <span class="feature-label">
+                            <div class="check-circle"></div>🪑 インフィニティチェア
+                        </span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="features" value="ReFaドライヤー" class="feature-check">
+                        <span class="feature-label">
+                            <div class="check-circle"></div>✨ ReFaドライヤー/シャワー
+                        </span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="features" value="Bluetooth音楽" class="feature-check">
+                        <span class="feature-label">
+                            <div class="check-circle"></div>🎵 Bluetooth音楽
+                        </span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="features" value="完全非対面" class="feature-check">
+                        <span class="feature-label">
+                            <div class="check-circle"></div>🔑 入退室がスムーズ
+                        </span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="features" value="手ぶら利用" class="feature-check">
+                        <span class="feature-label">
+                            <div class="check-circle"></div>👜 手ぶらでOK
+                        </span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="features" value="駅近" class="feature-check">
+                        <span class="feature-label">
+                            <div class="check-circle"></div>🚉 富山駅近
+                        </span>
+                    </label>
+                </div>
+                <div class="btn-row" style="margin-top:24px;">
+                    <button class="btn btn-secondary" onclick="nextStep(1)">戻る</button>
+                    <button class="btn btn-primary" onclick="nextStep(3)">次へ進む</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Message & Generation -->
+        <div id="step-3" class="step-container">
+            <div class="question-block">
+                <span class="q-label">Q3. 応援メッセージ（任意）</span>
+                <span class="q-sub">スタッフへの一言や個人的な感想があれば。<br>（AIがこの内容を整えて文章に入れます）</span>
+                <textarea id="freeMessage" class="free-input" placeholder="例：最高でした！また来ます。"></textarea>
+
+                <div class="btn-row" style="margin-top:24px; flex-direction: column-reverse;">
+                    <button class="btn btn-secondary" onclick="nextStep(2)">戻る</button>
+                    <button id="generateBtn" class="btn btn-primary">AIで文章を作成する</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: Result -->
+        <div id="step-result" class="step-container">
+            <div class="question-block">
+                <span class="q-label">🎉 文章ができました</span>
+                <p style="font-size:13px; color:#666;">内容を確認・編集してコピーしてください</p>
+                <textarea id="resultText" class="free-input" style="min-height:150px; margin-bottom:12px;"></textarea>
+
+                <button id="copyBtn" class="btn btn-primary" style="margin-bottom:12px">コピーしてGoogleマップへ</button>
+                <button id="retryBtn" class="btn btn-secondary">トップに戻る</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p style="margin-top:16px; font-weight:bold; color:#444;">AIが執筆中...</p>
+        </div>
+
+    </div>
+
+    <script>
+        // Global Config
+        let GMAP_URL = "https://maps.google.com"; // Fallback
+
+        // Load URL from Backend
+        fetch('/api/config')
+            .then(res => res.json())
+            .then(data => {
+                if (data.gmapUrl) GMAP_URL = data.gmapUrl;
+            })
+            .catch(console.error);
+
+        // Navigation Logic
+        function nextStep(stepNum) {
+            document.querySelectorAll('.step-container').forEach(el => {
+                el.classList.remove('active');
+                el.style.display = 'none'; // Force hide
+            });
+
+            const target = document.getElementById('step-' + stepNum);
+            if (target) {
+                target.style.display = 'block';
+                // Slight delay to allow display:block to render before opacity transition if wanted, 
+                // but simple display:block is enough for now.
+                setTimeout(() => target.classList.add('active'), 10);
+                window.scrollTo(0, 0);
+            }
+
+            // Use 'step-result' special case handled in generate callback
+        }
+
+        const generateBtn = document.getElementById('generateBtn');
+        const loading = document.getElementById('loading');
+        const resultText = document.getElementById('resultText');
+        const copyBtn = document.getElementById('copyBtn');
+        const retryBtn = document.getElementById('retryBtn');
+
+        generateBtn.addEventListener('click', async () => {
+            const context = document.querySelector('input[name="context"]:checked').value;
+            const features = Array.from(document.querySelectorAll('input[name="features"]:checked')).map(e => e.value);
+            const freeMessage = document.getElementById('freeMessage').value;
+
+            if (features.length === 0 && !freeMessage) {
+                if (!confirm("良かった点が選択されていませんが、このまま作成しますか？")) return;
+            }
+
+            loading.style.display = 'flex';
+
+            try {
+                const res = await fetch("/api/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        context,
+                        features,
+                        freeMessage
+                    })
+                });
+
+                if (!res.ok) throw new Error("API Error");
+                const data = await res.json();
+
+                resultText.value = data.text;
+
+                // Go to Result
+                document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.step-container').forEach(el => el.style.display = 'none');
+
+                const resultStep = document.getElementById('step-result');
+                resultStep.style.display = 'block';
+                setTimeout(() => resultStep.classList.add('active'), 10);
+                window.scrollTo(0, 0);
+
+            } catch (e) {
+                alert("エラーが発生しました。もう一度お試しください。");
+                console.error(e);
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (!resultText.value) return;
+            const doCopy = () => {
+                alert("コピーしました。Googleマップが開きます。");
+                window.location.href = GMAP_URL;
+            };
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(resultText.value)
+                    .then(doCopy)
+                    .catch(() => {
+                        // Fail over
+                        resultText.select();
+                        document.execCommand('copy');
+                        doCopy();
+                    });
+            } else {
+                resultText.select();
+                document.execCommand('copy');
+                doCopy();
+            }
+        });
+
+        retryBtn.addEventListener('click', () => {
+            location.reload();
+        });
+    </script>
+
+</body>
+
+</html>
