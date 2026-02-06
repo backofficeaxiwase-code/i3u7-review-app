@@ -21,8 +21,18 @@ export async function onRequestPost({ request, env }) {
             }
         );
 
+        if (!res.ok) {
+            const errorBody = await res.json().catch(() => ({}));
+            const errorMessage = errorBody?.error?.message || `Gemini API Status: ${res.status}`;
+            return new Response(JSON.stringify({ ok: false, error: errorMessage }), { status: 500 });
+        }
+
         const data = await res.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "生成に失敗しました";
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+        if (!text) {
+            return new Response(JSON.stringify({ ok: false, error: "No text generated (Blocked or Empty)", details: JSON.stringify(data) }), { status: 500 });
+        }
 
         return new Response(JSON.stringify({ ok: true, text }), { headers: { "Content-Type": "application/json" } });
 
