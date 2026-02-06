@@ -10,7 +10,7 @@ export async function onRequestPost({ request, env }) {
         const prompt = generateSaunaPrompt(context, features, freeMessage);
 
         const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${env.GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent?key=${env.GEMINI_API_KEY}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -82,4 +82,3 @@ function generateSaunaPrompt(context, features, freeMessage) {
   上記の情報を元に、自然なレビューを1つ作成してください。出力は本文のみ。
   `.trim();
 }
-"// Updated: $(date)" 
