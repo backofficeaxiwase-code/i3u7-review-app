@@ -82,3 +82,4 @@ function generateSaunaPrompt(context, features, freeMessage) {
   上記の情報を元に、自然なレビューを1つ作成してください。出力は本文のみ。
   `.trim();
 }
+"// Updated: $(date)" 
