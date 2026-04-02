@@ -3,5 +3,5 @@ pages_build_output_dir = "public"
 compatibility_date = "2026-02-06"
 
 [vars]
-GMAP_REVIEW_URL = "https://search.google.com/local/writereview?placeid=ChIJCZJczN2R918R8lQ8A57siFM"
-
+# Client configuration sample
+# GMAP_REVIEW_URL = "https://..."
