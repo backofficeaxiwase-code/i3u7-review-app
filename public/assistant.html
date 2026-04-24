@@ -152,7 +152,7 @@
             width: 20px;
             height: 20px;
             border: 2px solid #ddd;
-            border-radius: 50%;
+            border-radius: 4px;
             margin-right: 12px;
             display: flex;
             align-items: center;
@@ -162,10 +162,13 @@
 
         .check-circle::after {
             content: '';
-            width: 10px;
+            width: 5px;
             height: 10px;
-            background: var(--primary);
-            border-radius: 50%;
+            border: 2px solid var(--primary);
+            border-top: none;
+            border-left: none;
+            transform: rotate(45deg);
+            margin-top: -3px;
             display: none;
         }
 
@@ -176,6 +179,7 @@
 
         .feature-check:checked+.feature-label .check-circle {
             border-color: var(--primary);
+            background: var(--primary-light);
         }
 
         .feature-check:checked+.feature-label .check-circle::after {
